@@ -50,7 +50,7 @@ interface GenerateImageArgs {
   seed?: number;
   num_images?: number;
   output_directory?: string;
-  reference_images?: string | string[];
+  reference_images?: string[];
   filename?: string;
 }
 
@@ -152,11 +152,10 @@ function getDefaultOutputDirectory(): string {
 }
 
 // Process reference images - convert local paths to base64, keep URLs as is
-async function processReferenceImages(images: string | string[]): Promise<string[]> {
-  const imageArray = Array.isArray(images) ? images : [images];
+async function processReferenceImages(images: string[]): Promise<string[]> {
   const processedImages: string[] = [];
 
-  for (const img of imageArray) {
+  for (const img of images) {
     // Check if it's a URL
     if (img.startsWith('http://') || img.startsWith('https://')) {
       processedImages.push(img);
@@ -457,7 +456,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Directory to save generated images. If not specified, images will only be returned as URLs. If set to empty string or null, images will be saved to a default temporary directory",
             },
             reference_images: {
-              type: ["string", "array"],
+              type: "array",
               description: "🎨 INPUT IMAGE(S) for image-to-image generation (img2img). Provide source image(s) that will be used as visual input to guide the generation. Supports: URL (http/https) or local file path. Local images are auto-converted to base64. Use this to enhance, transform, or create variations of existing images.",
               items: {
                 type: "string",
