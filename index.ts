@@ -181,6 +181,8 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     console.log(`✓ Processed ${processedReferenceImages.length} reference image(s)`);
   }
 
+    const sequential_image_generation = num_images > 1 ? "auto" : "disabled";
+
     try {
     const requestBody: any = {
       model: MODEL_NAME,
