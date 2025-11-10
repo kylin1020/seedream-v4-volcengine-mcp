@@ -184,7 +184,7 @@ async function processReferenceImages(images: string[]): Promise<string[]> {
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         processedImages.push(dataUrl);
         
-        console.error(`  ✓ Loaded local image: ${resolvedPath}`);
+        console.log(`  ✓ Loaded local image: ${resolvedPath}`);
       } catch (error) {
         throw new Error(`Failed to process image "${img}": ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -233,20 +233,20 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
   // Convert dimensions to size string (e.g., "1024x1024", "2048x1024")
   const sizeString = `${dimensions.width}x${dimensions.height}`;
 
-  console.error(`\n🎨 Generating ${num_images} image(s) with SeedDream 4.0...`);
-  console.error(`📝 Prompt: "${prompt}"`);
-  console.error(`📐 Size: ${sizeString}`);
-  console.error(`🎯 Guidance Scale: ${guidance_scale}`);
+  console.log(`\n🎨 Generating ${num_images} image(s) with SeedDream 4.0...`);
+  console.log(`📝 Prompt: "${prompt}"`);
+  console.log(`📐 Size: ${sizeString}`);
+  console.log(`🎯 Guidance Scale: ${guidance_scale}`);
   if (seed) {
-    console.error(`🌱 Seed: ${seed}`);
+    console.log(`🌱 Seed: ${seed}`);
   }
 
   // Process reference images if provided
   let processedReferenceImages: string[] | undefined;
   if (reference_images) {
-    console.error(`\n🖼️  Processing reference images...`);
+    console.log(`\n🖼️  Processing reference images...`);
     processedReferenceImages = await processReferenceImages(reference_images);
-    console.error(`✓ Processed ${processedReferenceImages.length} reference image(s)`);
+    console.log(`✓ Processed ${processedReferenceImages.length} reference image(s)`);
   }
 
   try {
@@ -301,7 +301,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
         fs.mkdirSync(targetDir, { recursive: true });
       }
       
-      console.error(`\n💾 Downloading images to: ${targetDir}`);
+      console.log(`\n💾 Downloading images to: ${targetDir}`);
       
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
@@ -326,7 +326,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
         try {
           await downloadImage(img.url, filepath);
           savedPaths.push(filepath);
-          console.error(`  ✓ Saved image ${i + 1} to: ${filepath}`);
+          console.log(`  ✓ Saved image ${i + 1} to: ${filepath}`);
         } catch (error) {
           console.error(`  ✗ Failed to download image ${i + 1}: ${error}`);
         }
@@ -349,16 +349,17 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
 
     images.forEach((img, index) => {
       result += `\nImage ${index + 1}:\n`;
-      result += `  URL: ${img.url}\n`;
       if (savedPaths[index]) {
         result += `  Saved to: ${savedPaths[index]}\n`;
+      } else {
+        result += `  URL: ${img.url}\n`;
       }
       if (img.revised_prompt) {
         result += `  Revised Prompt: ${img.revised_prompt}\n`;
       }
     });
 
-    console.error(`✅ Generation complete!`);
+    console.log(`✅ Generation complete!`);
 
     return result;
   } catch (error) {
@@ -502,20 +503,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-
-  console.error("🚀 SeedDream 4.0 Volcengine MCP server running");
-  console.error("📡 Connected via stdio transport");
 }
 
 // Graceful shutdown
 process.on("SIGINT", async () => {
-  console.error("\n🛑 Shutting down gracefully...");
   await server.close();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
-  console.error("\n🛑 Shutting down gracefully...");
   await server.close();
   process.exit(0);
 });
