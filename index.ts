@@ -15,6 +15,28 @@ const VOLCENGINE_API_ENDPOINT = process.env.VOLCENGINE_API_ENDPOINT || "https://
 const VOLCENGINE_API_KEY = process.env.VOLCENGINE_API_KEY;
 const MODEL_NAME = "doubao-seedream-4-0-250828";
 
+// Validate API Key is configured
+if (!VOLCENGINE_API_KEY || VOLCENGINE_API_KEY.includes("your_volcengine_api_key")) {
+  console.error("\n❌ Error: VOLCENGINE_API_KEY is not properly configured!");
+  console.error("\nPlease set your Volcengine API key in the MCP configuration:");
+  console.error("1. Get your API key from Volcengine Console");
+  console.error("2. Add it to your MCP client configuration file");
+  console.error("3. Restart your MCP client");
+  console.error("\nExample configuration:");
+  console.error(JSON.stringify({
+    mcpServers: {
+      seedream: {
+        command: "node",
+        args: ["path/to/build/index.js"],
+        env: {
+          VOLCENGINE_API_KEY: "your_actual_api_key_here"
+        }
+      }
+    }
+  }, null, 2));
+  process.exit(1);
+}
+
 interface GenerateImageArgs {
   prompt: string;
   aspect_ratio?: string;
@@ -102,28 +124,6 @@ function getDimensions(
 
 // Generate image using Volcengine API
 async function generateImage(args: GenerateImageArgs): Promise<string> {
-  if (!VOLCENGINE_API_KEY) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      "❌ VOLCENGINE_API_KEY environment variable is not set.\n\n" +
-      "Please set your Volcengine API key in the MCP configuration:\n" +
-      "1. Get your API key from Volcengine Console\n" +
-      "2. Add it to your MCP client configuration file\n" +
-      "3. Restart your MCP client\n\n" +
-      "Example configuration:\n" +
-      '{\n' +
-      '  "mcpServers": {\n' +
-      '    "seedream": {\n' +
-      '      "command": "node",\n' +
-      '      "args": ["path/to/build/index.js"],\n' +
-      '      "env": {\n' +
-      '        "VOLCENGINE_API_KEY": "your_api_key_here"\n' +
-      '      }\n' +
-      '    }\n' +
-      '  }\n' +
-      '}'
-    );
-  }
 
   const {
     prompt,
@@ -352,11 +352,6 @@ async function main() {
 
   console.error("🚀 SeedDream 4.0 Volcengine MCP server running");
   console.error("📡 Connected via stdio transport");
-
-  if (!VOLCENGINE_API_KEY) {
-    console.error("\n⚠️  WARNING: VOLCENGINE_API_KEY environment variable is not set!");
-    console.error("Please configure your API key in the MCP client configuration.\n");
-  }
 }
 
 // Graceful shutdown
