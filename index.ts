@@ -247,7 +247,9 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
             const basename = path.basename(filename, ext);
             finalFilename = `${basename}_${i + 1}${ext}`;
           } else {
-            finalFilename = filename;
+            // For single image, ensure filename has .png extension if no extension provided
+            const ext = path.extname(filename);
+            finalFilename = ext ? filename : `${filename}.png`;
           }
         } else {
           // Default filename pattern
