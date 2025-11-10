@@ -9,6 +9,9 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 // Volcengine API configuration
 const VOLCENGINE_API_ENDPOINT = process.env.VOLCENGINE_API_ENDPOINT || "https://ark.cn-beijing.volces.com/api/v3";
@@ -46,6 +49,7 @@ interface GenerateImageArgs {
   guidance_scale?: number;
   seed?: number;
   num_images?: number;
+  output_directory?: string;
 }
 
 interface ImageGenerationResponse {
@@ -122,6 +126,29 @@ function getDimensions(
   }
 }
 
+// Download image from URL and save to disk
+async function downloadImage(url: string, outputPath: string): Promise<void> {
+  const response = await axios.get(url, {
+    responseType: 'arraybuffer',
+    timeout: 60000, // 1 minute timeout
+  });
+  
+  await fs.promises.writeFile(outputPath, response.data);
+}
+
+// Get default output directory (temp directory with seedream subfolder)
+function getDefaultOutputDirectory(): string {
+  const tempDir = os.tmpdir();
+  const seedreamDir = path.join(tempDir, 'seedream-images');
+  
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(seedreamDir)) {
+    fs.mkdirSync(seedreamDir, { recursive: true });
+  }
+  
+  return seedreamDir;
+}
+
 // Generate image using Volcengine API
 async function generateImage(args: GenerateImageArgs): Promise<string> {
 
@@ -134,6 +161,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     guidance_scale = 2.5,
     seed,
     num_images = 1,
+    output_directory,
   } = args;
 
   // Validate guidance scale
@@ -203,6 +231,34 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
 
     const images = response.data.data;
 
+    // Download images if output_directory is specified
+    let savedPaths: string[] = [];
+    if (output_directory !== undefined && output_directory !== null) {
+      const targetDir = output_directory || getDefaultOutputDirectory();
+      
+      // Ensure output directory exists
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      
+      console.error(`\n💾 Downloading images to: ${targetDir}`);
+      
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        const timestamp = Date.now();
+        const filename = `seedream_${timestamp}_${i + 1}.png`;
+        const filepath = path.join(targetDir, filename);
+        
+        try {
+          await downloadImage(img.url, filepath);
+          savedPaths.push(filepath);
+          console.error(`  ✓ Saved image ${i + 1} to: ${filepath}`);
+        } catch (error) {
+          console.error(`  ✗ Failed to download image ${i + 1}: ${error}`);
+        }
+      }
+    }
+
     // Format response
     let result = `✅ Successfully generated ${images.length} image(s) using SeedDream 4.0:\n\n`;
     result += `📝 Prompt: "${prompt}"\n`;
@@ -215,7 +271,11 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     result += `\n🖼️  Generated Images:\n`;
 
     images.forEach((img, index) => {
-      result += `\nImage ${index + 1}: ${img.url}\n`;
+      result += `\nImage ${index + 1}:\n`;
+      result += `  URL: ${img.url}\n`;
+      if (savedPaths[index]) {
+        result += `  Saved to: ${savedPaths[index]}\n`;
+      }
       if (img.revised_prompt) {
         result += `  Revised Prompt: ${img.revised_prompt}\n`;
       }
@@ -312,6 +372,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "number",
               description: "Number of images to generate (1-4, default: 1)",
               default: 1,
+            },
+            output_directory: {
+              type: "string",
+              description: "Directory to save generated images. If not specified, images will only be returned as URLs. If set to empty string or null, images will be saved to a default temporary directory",
             },
           },
           required: ["prompt"],
