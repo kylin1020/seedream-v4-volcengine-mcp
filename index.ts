@@ -406,7 +406,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "generate_image",
         description:
-          "Generate a single or multiple images from a text prompt using SeedDream 4.0 via Volcengine API. " +
+          "Generate images using SeedDream 4.0 via Volcengine API. Supports both text-to-image (txt2img) and image-to-image (img2img) generation. " +
+          "For img2img: provide source images via 'reference_images' parameter - the AI will use them as VISUAL INPUT to guide generation. " +
           "Supports bilingual prompts (English and Chinese), multiple aspect ratios, and configurable generation parameters. " +
           "Perfect for creating high-quality images with cinematic beauty and strong instruction following.",
         inputSchema: {
@@ -457,7 +458,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             reference_images: {
               type: ["string", "array"],
-              description: "Reference image(s) for image-to-image generation. Can be a single image or an array of images. Each image can be either a URL (http/https) or a local file path. Local images will be automatically converted to base64.",
+              description: "🎨 INPUT IMAGE(S) for image-to-image generation (img2img). Provide source image(s) that will be used as visual input to guide the generation. Supports: URL (http/https) or local file path. Local images are auto-converted to base64. Use this to enhance, transform, or create variations of existing images.",
               items: {
                 type: "string",
               },
