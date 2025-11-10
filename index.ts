@@ -188,7 +188,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
       model: MODEL_NAME,
       prompt,
       size: size,
-      sequential_image_generation: "disabled",
+      sequential_image_generation: sequential_image_generation,
       stream: false,
       response_format: "url",
       watermark: false,
