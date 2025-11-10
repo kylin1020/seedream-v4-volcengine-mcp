@@ -51,6 +51,7 @@ interface GenerateImageArgs {
   num_images?: number;
   output_directory?: string;
   reference_images?: string | string[];
+  filename?: string;
 }
 
 interface ImageGenerationResponse {
@@ -208,6 +209,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     num_images = 1,
     output_directory,
     reference_images,
+    filename,
   } = args;
 
   // Validate guidance scale
@@ -305,8 +307,22 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
         const timestamp = Date.now();
-        const filename = `seedream_${timestamp}_${i + 1}.png`;
-        const filepath = path.join(targetDir, filename);
+        // Use provided filename or default to seedream_{timestamp}_{index}.png
+        let finalFilename: string;
+        if (filename) {
+          // If custom filename is provided and multiple images, append index
+          if (num_images > 1) {
+            const ext = path.extname(filename) || '.png';
+            const basename = path.basename(filename, ext);
+            finalFilename = `${basename}_${i + 1}${ext}`;
+          } else {
+            finalFilename = filename;
+          }
+        } else {
+          // Default filename pattern
+          finalFilename = `seedream_${timestamp}_${i + 1}.png`;
+        }
+        const filepath = path.join(targetDir, finalFilename);
         
         try {
           await downloadImage(img.url, filepath);
@@ -445,6 +461,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               items: {
                 type: "string",
               },
+            },
+            filename: {
+              type: "string",
+              description: "Custom filename for saved images (default: seedream_{timestamp}_{index}.png). For multiple images, index will be automatically appended.",
             },
           },
           required: ["prompt"],
