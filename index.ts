@@ -545,7 +545,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             guidance_scale: {
               type: "number",
-              description: "Prompt adherence strength, higher values follow prompt more literally (1.0-10.0, default: 2.5)",
+              description: "Prompt adherence strength, higher values follow prompt more literally (2.0-3.0, default: 2.5)",
               default: 2.5,
             },
             seed: {
