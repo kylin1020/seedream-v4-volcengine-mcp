@@ -65,7 +65,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "https://github.com/your-username/seedream-v4-volcengine-mcp.git"
+        "https://github.com/kylin1020/seedream-v4-volcengine-mcp.git"
       ],
       "env": {
         "VOLCENGINE_API_KEY": "your_volcengine_api_key_here"
@@ -87,7 +87,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "https://github.com/your-username/seedream-v4-volcengine-mcp.git"
+        "https://github.com/kylin1020/seedream-v4-volcengine-mcp.git"
       ],
       "env": {
         "VOLCENGINE_API_KEY": "your_volcengine_api_key_here"
@@ -105,7 +105,7 @@
 
 1. **克隆仓库**
 ```bash
-git clone https://github.com/your-username/seedream-v4-volcengine-mcp.git
+git clone https://github.com/kylin1020/seedream-v4-volcengine-mcp.git
 cd seedream-v4-volcengine-mcp
 ```
 
@@ -347,7 +347,7 @@ Add the server to your Claude Desktop configuration file:
       "command": "npx",
       "args": [
         "-y",
-        "https://github.com/your-username/seedream-v4-volcengine-mcp.git"
+        "https://github.com/kylin1020/seedream-v4-volcengine-mcp.git"
       ],
       "env": {
         "VOLCENGINE_API_KEY": "your_volcengine_api_key_here"
@@ -369,7 +369,7 @@ Add to your MCP settings file at:
       "command": "npx",
       "args": [
         "-y",
-        "https://github.com/your-username/seedream-v4-volcengine-mcp.git"
+        "https://github.com/kylin1020/seedream-v4-volcengine-mcp.git"
       ],
       "env": {
         "VOLCENGINE_API_KEY": "your_volcengine_api_key_here"
@@ -387,7 +387,7 @@ If you prefer to install locally:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/seedream-v4-volcengine-mcp.git
+git clone https://github.com/kylin1020/seedream-v4-volcengine-mcp.git
 cd seedream-v4-volcengine-mcp
 ```
 
