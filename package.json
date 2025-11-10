@@ -1,0 +1,37 @@
+{
+  "name": "seedream-v4-volcengine-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for SeedDream 4.0 text-to-image generation via Volcengine API",
+  "main": "build/index.js",
+  "type": "module",
+  "bin": {
+    "seedream-v4-volcengine-mcp": "build/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prepare": "npm run build",
+    "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
+    "get-path": "node get-path.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "text-to-image",
+    "seedream",
+    "volcengine",
+    "image-generation",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "axios": "^1.7.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}
+

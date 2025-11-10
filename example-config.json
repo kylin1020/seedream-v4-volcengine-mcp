@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "seedream-volcengine": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "https://github.com/your-username/seedream-v4-volcengine-mcp.git"
+      ],
+      "env": {
+        "VOLCENGINE_API_KEY": "your_volcengine_api_key_here"
+      }
+    }
+  }
+}
+
