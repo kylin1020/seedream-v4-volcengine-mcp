@@ -54,6 +54,11 @@ interface GenerateImageArgs {
   filename?: string;
 }
 
+interface BatchGenerateImageArgs {
+  tasks: GenerateImageArgs[];
+  max_concurrent?: number;
+}
+
 interface ImageGenerationResponse {
   data?: Array<{
     url: string;
@@ -386,6 +391,106 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
   }
 }
 
+// Batch generate images with concurrency control
+async function batchGenerateImages(args: BatchGenerateImageArgs): Promise<string> {
+  const { tasks, max_concurrent = 3 } = args;
+
+  if (!tasks || tasks.length === 0) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      "tasks array is required and must not be empty"
+    );
+  }
+
+  if (tasks.length > 20) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      "Maximum 20 tasks allowed per batch"
+    );
+  }
+
+  console.log(`\n🚀 Starting batch generation: ${tasks.length} task(s), max ${max_concurrent} concurrent`);
+
+  // Function to run tasks with concurrency limit
+  const runWithConcurrency = async (
+    tasks: GenerateImageArgs[],
+    limit: number
+  ): Promise<Array<{ success: boolean; result?: string; error?: string; taskIndex: number }>> => {
+    const results: Array<{ success: boolean; result?: string; error?: string; taskIndex: number }> = [];
+    const executing: Promise<void>[] = [];
+
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
+      const taskIndex = i;
+
+      const promise = (async () => {
+        try {
+          console.log(`\n[Task ${taskIndex + 1}/${tasks.length}] Starting...`);
+          const result = await generateImage(task);
+          results.push({ success: true, result, taskIndex });
+          console.log(`[Task ${taskIndex + 1}/${tasks.length}] ✅ Completed`);
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          results.push({ success: false, error: errorMsg, taskIndex });
+          console.error(`[Task ${taskIndex + 1}/${tasks.length}] ❌ Failed: ${errorMsg}`);
+        }
+      })();
+
+      executing.push(promise);
+
+      if (executing.length >= limit) {
+        await Promise.race(executing);
+        executing.splice(
+          executing.findIndex((p) => p === promise),
+          1
+        );
+      }
+    }
+
+    await Promise.all(executing);
+    return results.sort((a, b) => a.taskIndex - b.taskIndex);
+  };
+
+  try {
+    const results = await runWithConcurrency(tasks, max_concurrent);
+
+    // Format response
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.length - successCount;
+
+    let response = `\n${'='.repeat(60)}\n`;
+    response += `📊 Batch Generation Summary\n`;
+    response += `${'='.repeat(60)}\n\n`;
+    response += `Total Tasks: ${tasks.length}\n`;
+    response += `✅ Successful: ${successCount}\n`;
+    response += `❌ Failed: ${failCount}\n`;
+    response += `⚡ Max Concurrent: ${max_concurrent}\n`;
+    response += `\n${'='.repeat(60)}\n`;
+
+    results.forEach((result, index) => {
+      response += `\n[Task ${index + 1}]\n`;
+      response += `${'-'.repeat(60)}\n`;
+      
+      if (result.success) {
+        response += result.result + '\n';
+      } else {
+        response += `❌ Error: ${result.error}\n`;
+      }
+    });
+
+    response += `\n${'='.repeat(60)}\n`;
+    response += `✅ Batch generation completed!\n`;
+    response += `${'='.repeat(60)}\n`;
+
+    return response;
+  } catch (error) {
+    throw new McpError(
+      ErrorCode.InternalError,
+      `Batch generation failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
 // Create MCP server
 const server = new Server(
   {
@@ -471,6 +576,84 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["prompt"],
         },
       },
+      {
+        name: "batch_generate_images",
+        description:
+          "Batch generate multiple images concurrently using SeedDream 4.0. " +
+          "This tool allows you to generate multiple different images in parallel with controlled concurrency. " +
+          "Each task can have different prompts, settings, and parameters. " +
+          "Perfect for generating multiple variations, scenes, or concepts efficiently.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tasks: {
+              type: "array",
+              description: "Array of image generation tasks to execute concurrently. Each task has the same parameters as generate_image tool.",
+              items: {
+                type: "object",
+                properties: {
+                  prompt: {
+                    type: "string",
+                    description: "Text description of the image to generate",
+                  },
+                  aspect_ratio: {
+                    type: "string",
+                    enum: ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9", "custom"],
+                    description: "Image aspect ratio (default: 16:9)",
+                  },
+                  size: {
+                    type: "string",
+                    enum: ["small", "regular", "big"],
+                    description: "Image size preset (default: regular)",
+                  },
+                  width: {
+                    type: "number",
+                    description: "Image width in pixels (512-2048, only for custom aspect_ratio)",
+                  },
+                  height: {
+                    type: "number",
+                    description: "Image height in pixels (512-2048, only for custom aspect_ratio)",
+                  },
+                  guidance_scale: {
+                    type: "number",
+                    description: "Prompt adherence strength (1.0-10.0, default: 2.5)",
+                  },
+                  seed: {
+                    type: "number",
+                    description: "Random seed for reproducible results",
+                  },
+                  num_images: {
+                    type: "number",
+                    description: "Number of images per task (1-4, default: 1)",
+                  },
+                  output_directory: {
+                    type: "string",
+                    description: "Directory to save images (absolute path)",
+                  },
+                  reference_images: {
+                    type: "array",
+                    description: "Reference images for img2img generation",
+                    items: {
+                      type: "string",
+                    },
+                  },
+                  filename: {
+                    type: "string",
+                    description: "Custom filename for saved images",
+                  },
+                },
+                required: ["prompt"],
+              },
+            },
+            max_concurrent: {
+              type: "number",
+              description: "Maximum number of tasks to run concurrently (1-10, default: 3). Lower values reduce API load, higher values increase speed.",
+              default: 3,
+            },
+          },
+          required: ["tasks"],
+        },
+      },
     ],
   };
 });
@@ -485,6 +668,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     const result = await generateImage(args);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: result,
+        },
+      ],
+    };
+  }
+
+  if (request.params.name === "batch_generate_images") {
+    const args = request.params.arguments as unknown as BatchGenerateImageArgs;
+
+    if (!args.tasks || args.tasks.length === 0) {
+      throw new McpError(ErrorCode.InvalidParams, "tasks array is required and must not be empty");
+    }
+
+    // Validate max_concurrent parameter
+    if (args.max_concurrent !== undefined) {
+      if (args.max_concurrent < 1 || args.max_concurrent > 10) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "max_concurrent must be between 1 and 10"
+        );
+      }
+    }
+
+    const result = await batchGenerateImages(args);
 
     return {
       content: [
