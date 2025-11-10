@@ -454,11 +454,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             output_directory: {
               type: "string",
-              description: "Directory to save generated images. If not specified, images will only be returned as URLs. If set to empty string or null, images will be saved to a default temporary directory",
+              description: "Directory to save generated images (MUST be absolute path). If not specified, images will only be returned as URLs. If set to empty string or null, images will be saved to a default temporary directory",
             },
             reference_images: {
               type: "array",
-              description: "🎨 INPUT IMAGE(S) for image-to-image generation (img2img). Provide source image(s) that will be used as visual input to guide the generation. Supports: URL (http/https) or local file path. Local images are auto-converted to base64. Use this to enhance, transform, or create variations of existing images.",
+              description: "🎨 INPUT IMAGE(S) for image-to-image generation. Provide source image(s) that will be used as visual input to guide the generation. Supports: URL (http/https) or local file path (MUST be absolute path). Local images are auto-converted to base64. Use this to enhance, transform, or create variations of existing images.",
               items: {
                 type: "string",
               },
