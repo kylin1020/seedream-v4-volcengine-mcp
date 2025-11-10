@@ -11,8 +11,9 @@ import {
 import axios from "axios";
 
 // Volcengine API configuration
-const VOLCENGINE_API_ENDPOINT = process.env.VOLCENGINE_API_ENDPOINT || "https://api.volcengine.com/api/v1";
+const VOLCENGINE_API_ENDPOINT = process.env.VOLCENGINE_API_ENDPOINT || "https://ark.cn-beijing.volces.com/api/v3";
 const VOLCENGINE_API_KEY = process.env.VOLCENGINE_API_KEY;
+const MODEL_NAME = "doubao-seedream-4-0-250828";
 
 interface GenerateImageArgs {
   prompt: string;
@@ -26,15 +27,14 @@ interface GenerateImageArgs {
 }
 
 interface ImageGenerationResponse {
-  code: number;
-  message: string;
-  data?: {
-    images: Array<{
-      url: string;
-      width: number;
-      height: number;
-    }>;
-    seed?: number;
+  data?: Array<{
+    url: string;
+    b64_json?: string;
+    revised_prompt?: string;
+  }>;
+  error?: {
+    message: string;
+    type: string;
   };
 }
 
@@ -154,26 +154,40 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
 
   // Get dimensions
   const dimensions = getDimensions(aspect_ratio, size, width, height);
+  
+  // Convert dimensions to size string (e.g., "1024x1024", "2048x1024")
+  const sizeString = `${dimensions.width}x${dimensions.height}`;
 
   console.error(`\n🎨 Generating ${num_images} image(s) with SeedDream 4.0...`);
   console.error(`📝 Prompt: "${prompt}"`);
-  console.error(`📐 Dimensions: ${dimensions.width}x${dimensions.height}`);
+  console.error(`📐 Size: ${sizeString}`);
   console.error(`🎯 Guidance Scale: ${guidance_scale}`);
   if (seed) {
     console.error(`🌱 Seed: ${seed}`);
   }
 
   try {
+    const requestBody: any = {
+      model: MODEL_NAME,
+      prompt,
+      size: sizeString,
+      sequential_image_generation: "disabled",
+      stream: false,
+      response_format: "url",
+      watermark: true,
+    };
+
+    // Add optional parameters
+    if (num_images && num_images > 1) {
+      requestBody.n = num_images;
+    }
+    if (seed !== undefined) {
+      requestBody.seed = seed;
+    }
+
     const response = await axios.post<ImageGenerationResponse>(
-      `${VOLCENGINE_API_ENDPOINT}/text2image`,
-      {
-        prompt,
-        width: dimensions.width,
-        height: dimensions.height,
-        guidance_scale,
-        seed,
-        num_images,
-      },
+      `${VOLCENGINE_API_ENDPOINT}/images/generations`,
+      requestBody,
       {
         headers: {
           "Content-Type": "application/json",
@@ -183,25 +197,28 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
       }
     );
 
-    if (response.data.code !== 0 || !response.data.data) {
-      throw new Error(response.data.message || "Image generation failed");
+    if (response.data.error || !response.data.data) {
+      throw new Error(response.data.error?.message || "Image generation failed");
     }
 
-    const { images, seed: usedSeed } = response.data.data;
+    const images = response.data.data;
 
     // Format response
     let result = `✅ Successfully generated ${images.length} image(s) using SeedDream 4.0:\n\n`;
     result += `📝 Prompt: "${prompt}"\n`;
     result += `📐 Aspect Ratio: ${aspect_ratio}\n`;
-    result += `📏 Size: ${size}\n`;
+    result += `📏 Size: ${sizeString}\n`;
     result += `🎯 Guidance Scale: ${guidance_scale}\n`;
-    if (usedSeed) {
-      result += `🌱 Seed Used: ${usedSeed}\n`;
+    if (seed) {
+      result += `🌱 Seed: ${seed}\n`;
     }
     result += `\n🖼️  Generated Images:\n`;
 
     images.forEach((img, index) => {
-      result += `\nImage ${index + 1} (${img.width}x${img.height}): ${img.url}\n`;
+      result += `\nImage ${index + 1}: ${img.url}\n`;
+      if (img.revised_prompt) {
+        result += `  Revised Prompt: ${img.revised_prompt}\n`;
+      }
     });
 
     console.error(`✅ Generation complete!`);
