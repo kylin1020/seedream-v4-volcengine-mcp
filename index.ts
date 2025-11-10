@@ -262,7 +262,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
       sequential_image_generation: "disabled",
       stream: false,
       response_format: "url",
-      watermark: true,
+      watermark: false,
     };
 
     // Add reference images if provided
