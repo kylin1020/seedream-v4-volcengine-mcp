@@ -42,10 +42,7 @@ if (!VOLCENGINE_API_KEY || VOLCENGINE_API_KEY.includes("your_volcengine_api_key"
 
 interface GenerateImageArgs {
   prompt: string;
-  aspect_ratio?: string;
   size?: string;
-  width?: number;
-  height?: number;
   guidance_scale?: number;
   seed?: number;
   num_images?: number;
@@ -71,67 +68,6 @@ interface ImageGenerationResponse {
   };
 }
 
-// Validate and get dimension based on size and aspect ratio
-function getDimensions(
-  aspectRatio: string,
-  size: string,
-  customWidth?: number,
-  customHeight?: number
-): { width: number; height: number } {
-  // Custom dimensions
-  if (aspectRatio === "custom") {
-    if (!customWidth || !customHeight) {
-      throw new Error("Width and height must be provided when aspect_ratio is 'custom'");
-    }
-    if (customWidth < 512 || customWidth > 2048 || customHeight < 512 || customHeight > 2048) {
-      throw new Error("Width and height must be between 512 and 2048 pixels");
-    }
-    return { width: customWidth, height: customHeight };
-  }
-
-  // Predefined aspect ratios
-  const aspectRatios: Record<string, [number, number]> = {
-    "1:1": [1, 1],
-    "3:4": [3, 4],
-    "4:3": [4, 3],
-    "16:9": [16, 9],
-    "9:16": [9, 16],
-    "2:3": [2, 3],
-    "3:2": [3, 2],
-    "21:9": [21, 9],
-  };
-
-  const ratio = aspectRatios[aspectRatio];
-  if (!ratio) {
-    throw new Error(`Invalid aspect ratio: ${aspectRatio}`);
-  }
-
-  const [ratioW, ratioH] = ratio;
-
-  if (size === "small") {
-    // Shortest dimension 512px
-    const shortDim = 512;
-    if (ratioW < ratioH) {
-      return { width: shortDim, height: Math.round((shortDim * ratioH) / ratioW) };
-    } else {
-      return { width: Math.round((shortDim * ratioW) / ratioH), height: shortDim };
-    }
-  } else if (size === "big") {
-    // Longest dimension 2048px
-    const longDim = 2048;
-    if (ratioW > ratioH) {
-      return { width: longDim, height: Math.round((longDim * ratioH) / ratioW) };
-    } else {
-      return { width: Math.round((longDim * ratioW) / ratioH), height: longDim };
-    }
-  } else {
-    // Regular: 1 megapixel (1024x1024 equivalent)
-    const targetPixels = 1048576; // 1024 * 1024
-    const width = Math.round(Math.sqrt((targetPixels * ratioW) / ratioH));
-    const height = Math.round((width * ratioH) / ratioW);
-    return { width, height };
-  }
-}
 
 // Download image from URL and save to disk
 async function downloadImage(url: string, outputPath: string): Promise<void> {
@@ -204,10 +140,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
 
   const {
     prompt,
-    aspect_ratio = "16:9",
-    size = "regular",
-    width,
-    height,
+    size = "2K",
     guidance_scale = 2.5,
     seed,
     num_images = 1,
@@ -232,15 +165,9 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     );
   }
 
-  // Get dimensions
-  const dimensions = getDimensions(aspect_ratio, size, width, height);
-  
-  // Convert dimensions to size string (e.g., "1024x1024", "2048x1024")
-  const sizeString = `${dimensions.width}x${dimensions.height}`;
-
   console.log(`\n🎨 Generating ${num_images} image(s) with SeedDream 4.0...`);
   console.log(`📝 Prompt: "${prompt}"`);
-  console.log(`📐 Size: ${sizeString}`);
+  console.log(`📐 Size: ${size}`);
   console.log(`🎯 Guidance Scale: ${guidance_scale}`);
   if (seed) {
     console.log(`🌱 Seed: ${seed}`);
@@ -254,11 +181,11 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     console.log(`✓ Processed ${processedReferenceImages.length} reference image(s)`);
   }
 
-  try {
+    try {
     const requestBody: any = {
       model: MODEL_NAME,
       prompt,
-      size: sizeString,
+      size: size,
       sequential_image_generation: "disabled",
       stream: false,
       response_format: "url",
@@ -341,8 +268,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     // Format response
     let result = `✅ Successfully generated ${images.length} image(s) using SeedDream 4.0:\n\n`;
     result += `📝 Prompt: "${prompt}"\n`;
-    result += `📐 Aspect Ratio: ${aspect_ratio}\n`;
-    result += `📏 Size: ${sizeString}\n`;
+    result += `📏 Size: ${size}\n`;
     result += `🎯 Guidance Scale: ${guidance_scale}\n`;
     if (seed) {
       result += `🌱 Seed: ${seed}\n`;
@@ -522,26 +448,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: "string",
               description: "Text description of the image to generate (supports English and Chinese)",
             },
-            aspect_ratio: {
-              type: "string",
-              enum: ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9", "custom"],
-              description: "Image aspect ratio (default: 16:9)",
-              default: "16:9",
-            },
             size: {
               type: "string",
-              enum: ["small", "regular", "big"],
               description:
-                "Image size preset: small (shortest dim 512px), regular (1 megapixel), big (longest dim 2048px). Ignored if aspect_ratio is 'custom' (default: regular)",
-              default: "regular",
-            },
-            width: {
-              type: "number",
-              description: "Image width in pixels (512-2048, only used when aspect_ratio is 'custom')",
-            },
-            height: {
-              type: "number",
-              description: "Image height in pixels (512-2048, only used when aspect_ratio is 'custom')",
+                "Image size specification. Supports: '1K', '2K', '4K' or custom dimensions like '1280x720', '2048x2048', '2560x1440', '4096x4096' etc. (default: '2K')",
+              default: "2K",
             },
             guidance_scale: {
               type: "number",
@@ -596,23 +507,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     type: "string",
                     description: "Text description of the image to generate",
                   },
-                  aspect_ratio: {
-                    type: "string",
-                    enum: ["1:1", "3:4", "4:3", "16:9", "9:16", "2:3", "3:2", "21:9", "custom"],
-                    description: "Image aspect ratio (default: 16:9)",
-                  },
                   size: {
                     type: "string",
-                    enum: ["small", "regular", "big"],
-                    description: "Image size preset (default: regular)",
-                  },
-                  width: {
-                    type: "number",
-                    description: "Image width in pixels (512-2048, only for custom aspect_ratio)",
-                  },
-                  height: {
-                    type: "number",
-                    description: "Image height in pixels (512-2048, only for custom aspect_ratio)",
+                    description: "Image size: '1K', '2K', '4K' or custom dimensions like '1280x720', '2048x2048', etc. Default: '2K'",
                   },
                   guidance_scale: {
                     type: "number",
