@@ -451,7 +451,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             size: {
               type: "string",
               description:
-                "Image size specification. Supports: '1K', '2K', '4K' or custom dimensions like '1280x720', '2048x2048', '2560x1440', '4096x4096' etc. (default: '2K')",
+                "Image size specification. Supports: '1K', '2K', '4K' (default: '2K')",
               default: "2K",
             },
             guidance_scale: {
@@ -509,7 +509,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                   },
                   size: {
                     type: "string",
-                    description: "Image size: '1K', '2K', '4K' or custom dimensions like '1280x720', '2048x2048', etc. Default: '2K'",
+                    description: "Image size: '1K', '2K', '4K'. Default: '2K'",
                   },
                   guidance_scale: {
                     type: "number",
