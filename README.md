@@ -14,6 +14,7 @@
 - 🎨 **灵活的尺寸选项** - small（最短边512px）、regular（1百万像素）、big（最长边2048px）
 - ⚡ **快速生成** - 约3秒即可生成1K图像
 - 🎯 **强大的指令遵循能力** - 高度还原文本描述
+- 🖼️ **参考图支持** - 支持图生图功能，可输入URL或本地图片路径
 
 ### 可用工具
 
@@ -35,6 +36,7 @@
 - `guidance_scale` (可选): 提示词遵循强度，数值越高越严格遵循提示词 (1.0-10.0, 默认: 2.5)
 - `seed` (可选): 随机种子，用于生成可复现的结果 (0-2147483647)
 - `num_images` (可选): 生成图像数量 (1-4, 默认: 1)
+- `reference_images` (可选): 参考图像，用于图生图。可以是单个图像或图像数组。每个图像可以是URL（http/https）或本地文件路径。本地图像会自动转换为base64
 
 ### 安装
 
@@ -173,6 +175,21 @@ npm run get-path
 生成一张人在图书馆看书的写实肖像照（guidance scale: 7.5）
 ```
 
+#### 使用参考图生成（图生图）
+```
+基于这张图片生成一个相似风格的场景：/path/to/reference/image.jpg
+```
+
+#### 使用URL作为参考图
+```
+参考这张图片的风格生成新图：https://example.com/image.jpg
+```
+
+#### 使用多张参考图
+```
+结合这些参考图的风格生成图片：["image1.jpg", "image2.jpg"]
+```
+
 ### API响应格式
 
 服务器返回生成图像的详细信息：
@@ -274,7 +291,14 @@ npm run inspector
 
 ### 更新日志
 
-#### v0.1.0 (最新)
+#### v0.2.0 (最新)
+
+- 🖼️ 新增参考图功能（图生图）
+- 支持URL和本地图片路径作为参考图
+- 本地图片自动转换为base64
+- 支持单个或多个参考图输入
+
+#### v0.1.0
 
 - 🎉 初始版本
 - 支持单张和批量图像生成
@@ -296,6 +320,7 @@ npm run inspector
 - 🎨 **Flexible size options** - small (shortest dim 512px), regular (1 megapixel), big (longest dim 2048px)
 - ⚡ **Fast generation** - About 3 seconds for 1K images
 - 🎯 **Strong instruction following** - Highly accurate text-to-image conversion
+- 🖼️ **Reference image support** - Image-to-image generation with URL or local file paths
 
 ### Available Tools
 
@@ -317,6 +342,7 @@ Generate images from text prompts using Volcengine's SeedDream 4.0 model.
 - `guidance_scale` (optional): Prompt adherence strength, higher values follow prompt more literally (1.0-10.0, default: 2.5)
 - `seed` (optional): Random seed for reproducible results (0-2147483647)
 - `num_images` (optional): Number of images to generate (1-4, default: 1)
+- `reference_images` (optional): Reference image(s) for image-to-image generation. Can be a single image or an array of images. Each image can be either a URL (http/https) or a local file path. Local images will be automatically converted to base64
 
 ### Installation
 
@@ -455,6 +481,21 @@ Generate images for these prompts: "a red rose", "a blue ocean", "a green forest
 Generate a photorealistic portrait of a person reading a book in a library (guidance scale: 7.5)
 ```
 
+#### Using Reference Images (Image-to-Image)
+```
+Generate a similar style scene based on this image: /path/to/reference/image.jpg
+```
+
+#### Using URL as Reference Image
+```
+Generate a new image referencing the style of: https://example.com/image.jpg
+```
+
+#### Using Multiple Reference Images
+```
+Combine the styles from these reference images: ["image1.jpg", "image2.jpg"]
+```
+
 ### API Response Format
 
 The server returns detailed information about generated images:
@@ -556,7 +597,14 @@ For issues related to:
 
 ### Changelog
 
-#### v0.1.0 (Latest)
+#### v0.2.0 (Latest)
+
+- 🖼️ Added reference image support (image-to-image generation)
+- Support for both URL and local file paths as reference images
+- Automatic base64 conversion for local images
+- Support for single or multiple reference images
+
+#### v0.1.0
 
 - 🎉 Initial release
 - Support for single and batch image generation

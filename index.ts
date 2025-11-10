@@ -50,6 +50,7 @@ interface GenerateImageArgs {
   seed?: number;
   num_images?: number;
   output_directory?: string;
+  reference_images?: string | string[];
 }
 
 interface ImageGenerationResponse {
@@ -149,6 +150,50 @@ function getDefaultOutputDirectory(): string {
   return seedreamDir;
 }
 
+// Process reference images - convert local paths to base64, keep URLs as is
+async function processReferenceImages(images: string | string[]): Promise<string[]> {
+  const imageArray = Array.isArray(images) ? images : [images];
+  const processedImages: string[] = [];
+
+  for (const img of imageArray) {
+    // Check if it's a URL
+    if (img.startsWith('http://') || img.startsWith('https://')) {
+      processedImages.push(img);
+    } else {
+      // It's a local file path - convert to base64
+      try {
+        // Resolve path (support both absolute and relative paths)
+        const resolvedPath = path.isAbsolute(img) ? img : path.resolve(process.cwd(), img);
+        
+        if (!fs.existsSync(resolvedPath)) {
+          throw new Error(`Image file not found: ${resolvedPath}`);
+        }
+
+        const imageBuffer = await fs.promises.readFile(resolvedPath);
+        const base64Image = imageBuffer.toString('base64');
+        
+        // Detect MIME type based on file extension
+        const ext = path.extname(resolvedPath).toLowerCase();
+        let mimeType = 'image/jpeg'; // default
+        if (ext === '.png') mimeType = 'image/png';
+        else if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+        else if (ext === '.gif') mimeType = 'image/gif';
+        else if (ext === '.webp') mimeType = 'image/webp';
+        
+        // Format as data URL
+        const dataUrl = `data:${mimeType};base64,${base64Image}`;
+        processedImages.push(dataUrl);
+        
+        console.error(`  ✓ Loaded local image: ${resolvedPath}`);
+      } catch (error) {
+        throw new Error(`Failed to process image "${img}": ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+
+  return processedImages;
+}
+
 // Generate image using Volcengine API
 async function generateImage(args: GenerateImageArgs): Promise<string> {
 
@@ -162,6 +207,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     seed,
     num_images = 1,
     output_directory,
+    reference_images,
   } = args;
 
   // Validate guidance scale
@@ -194,6 +240,14 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     console.error(`🌱 Seed: ${seed}`);
   }
 
+  // Process reference images if provided
+  let processedReferenceImages: string[] | undefined;
+  if (reference_images) {
+    console.error(`\n🖼️  Processing reference images...`);
+    processedReferenceImages = await processReferenceImages(reference_images);
+    console.error(`✓ Processed ${processedReferenceImages.length} reference image(s)`);
+  }
+
   try {
     const requestBody: any = {
       model: MODEL_NAME,
@@ -204,6 +258,11 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
       response_format: "url",
       watermark: true,
     };
+
+    // Add reference images if provided
+    if (processedReferenceImages && processedReferenceImages.length > 0) {
+      requestBody.image = processedReferenceImages;
+    }
 
     // Add optional parameters
     if (num_images && num_images > 1) {
@@ -268,6 +327,9 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
     if (seed) {
       result += `🌱 Seed: ${seed}\n`;
     }
+    if (processedReferenceImages && processedReferenceImages.length > 0) {
+      result += `🖼️  Reference Images: ${processedReferenceImages.length}\n`;
+    }
     result += `\n🖼️  Generated Images:\n`;
 
     images.forEach((img, index) => {
@@ -312,7 +374,7 @@ async function generateImage(args: GenerateImageArgs): Promise<string> {
 const server = new Server(
   {
     name: "seedream-v4-volcengine-mcp",
-    version: "0.1.0",
+    version: "0.2.0",
   },
   {
     capabilities: {
@@ -376,6 +438,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             output_directory: {
               type: "string",
               description: "Directory to save generated images. If not specified, images will only be returned as URLs. If set to empty string or null, images will be saved to a default temporary directory",
+            },
+            reference_images: {
+              type: ["string", "array"],
+              description: "Reference image(s) for image-to-image generation. Can be a single image or an array of images. Each image can be either a URL (http/https) or a local file path. Local images will be automatically converted to base64.",
+              items: {
+                type: "string",
+              },
             },
           },
           required: ["prompt"],
