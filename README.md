@@ -10,11 +10,11 @@
 
 - ✅ **高质量图像生成** - 使用SeedDream 4.0模型，具有电影般的美感
 - 🌐 **双语支持** - 支持中英文提示词
-- 📐 **多种纵横比** - 支持1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2, 21:9及自定义尺寸
-- 🎨 **灵活的尺寸选项** - small（最短边512px）、regular（1百万像素）、big（最长边2048px）
+- 🎨 **灵活的尺寸选项** - 支持1K、2K、4K三种尺寸规格
 - ⚡ **快速生成** - 约3秒即可生成1K图像
 - 🎯 **强大的指令遵循能力** - 高度还原文本描述
 - 🖼️ **参考图支持** - 支持图生图功能，可输入URL或本地图片路径
+- 💾 **灵活的输出选项** - 支持自定义保存路径和文件名
 
 ### 可用工具
 
@@ -24,19 +24,32 @@
 
 **参数：**
 
-- `prompt` (必需): 图像的文本描述（支持中英文）
-- `aspect_ratio` (可选): 图像纵横比 - 可选值: `1:1`, `3:4`, `4:3`, `16:9`, `9:16`, `2:3`, `3:2`, `21:9`, `custom` (默认: `16:9`)
-- `size` (可选): 图像尺寸 - 可选值: `small`, `regular`, `big` (默认: `regular`)
-  - `small`: 最短边512px
-  - `regular`: 总像素1百万（1024x1024）
-  - `big`: 最长边2048px
-  - 当aspect_ratio为`custom`时忽略此参数
-- `width` (可选): 图像宽度（512-2048像素，仅当aspect_ratio为`custom`时使用）
-- `height` (可选): 图像高度（512-2048像素，仅当aspect_ratio为`custom`时使用）
-- `guidance_scale` (可选): 提示词遵循强度，数值越高越严格遵循提示词 (1.0-10.0, 默认: 2.5)
+- `prompt` (必需): 图像的文本描述（支持中英文）。**提示：您可以在提示词中指定纵横比，例如"竖屏的城市夜景"、"9:16宽高比的景观"，模型会自动按要求生成**
+- `size` (可选): 图像尺寸规格 - 可选值: `1K`, `2K`, `4K` (默认: `2K`)
+- `guidance_scale` (可选): 提示词遵循强度，数值越高越严格遵循提示词 (2.0-3.0, 默认: 2.5)
 - `seed` (可选): 随机种子，用于生成可复现的结果 (0-2147483647)
 - `num_images` (可选): 生成图像数量 (1-4, 默认: 1)
-- `reference_images` (可选): 参考图像，用于图生图。可以是单个图像或图像数组。每个图像可以是URL（http/https）或本地文件路径。本地图像会自动转换为base64
+- `output_directory` (可选): 保存生成图像的目录（必须是绝对路径）。如果不指定，图像仅作为URL返回。如果设置为空字符串或null，图像将保存到默认临时目录
+- `reference_images` (可选): 参考图像，用于图生图。可以是单个图像或图像数组。每个图像可以是URL（http/https）或本地文件路径（必须是绝对路径）。本地图像会自动转换为base64
+- `filename` (可选): 自定义保存的文件名（默认: seedream_{timestamp}_{index}.png）。对于多张图像，会自动添加索引
+
+#### `batch_generate_images`
+
+使用SeedDream 4.0并发生成多张图像。此工具允许您并行生成多个不同的图像，具有可控的并发数量。每个任务可以有不同的提示词、设置和参数。非常适合高效地生成多个变体、场景或概念。
+
+**参数：**
+
+- `tasks` (必需): 要并发执行的图像生成任务数组。每个任务具有与 `generate_image` 工具相同的参数：
+  - `prompt` (必需): 图像的文本描述
+  - `size` (可选): 图像尺寸规格 - `1K`, `2K`, `4K` (默认: `2K`)
+  - `guidance_scale` (可选): 提示词遵循强度 (2.0-3.0, 默认: 2.5)
+  - `seed` (可选): 随机种子 (0-2147483647)
+  - `num_images` (可选): 每个任务生成的图像数量 (1-4, 默认: 1)
+  - `output_directory` (可选): 保存图像的目录（绝对路径）
+  - `reference_images` (可选): 参考图像数组（用于图生图）
+  - `filename` (可选): 自定义文件名
+
+- `max_concurrent` (可选): 最多并发运行的任务数 (1-10, 默认: 3)。较低的值会减少API负载，较高的值会提高速度
 
 ### 安装
 
@@ -150,9 +163,14 @@ npm run get-path
 生成一张宁静的山景日落图，带有湖面倒影
 ```
 
-#### 指定纵横比
+#### 指定纵横比（通过提示词）
 ```
-创建一张竖屏的未来城市景观图（纵横比9:16）
+创建一张竖屏的未来城市景观图（9:16宽高比）
+```
+
+#### 指定图像尺寸
+```
+生成一张高清的山景图（4K尺寸）
 ```
 
 #### 生成多张图像
@@ -160,9 +178,14 @@ npm run get-path
 生成3个可爱机器人角色的变体
 ```
 
-#### 批量生成
+#### 批量并发生成（使用 batch_generate_images）
 ```
-为以下提示词生成图像："一朵红玫瑰"、"蓝色海洋"、"绿色森林"
+同时为以下提示词生成图像："一朵红玫瑰"、"蓝色海洋"、"绿色森林"
+```
+
+#### 批量生成并控制并发数
+```
+为5个不同的场景生成图像，但最多只能同时进行2个任务以控制API负载
 ```
 
 #### 中文提示词支持
@@ -172,7 +195,7 @@ npm run get-path
 
 #### 高引导度获得精确结果
 ```
-生成一张人在图书馆看书的写实肖像照（guidance scale: 7.5）
+生成一张人在图书馆看书的写实肖像照（guidance scale: 3.0）
 ```
 
 #### 使用参考图生成（图生图）
@@ -198,7 +221,7 @@ npm run get-path
 ✅ 使用SeedDream 4.0成功生成1张图像：
 
 📝 提示词: "宁静的山景日落"
-📐 纵横比: 1:1
+📐 尺寸规格: 2K
 🎯 引导度: 2.5
 🌱 使用的种子: 1234567890
 
@@ -316,11 +339,11 @@ npm run inspector
 
 - ✅ **High-quality image generation** - Using SeedDream 4.0 model with cinematic beauty
 - 🌐 **Bilingual support** - Supports English and Chinese prompts
-- 📐 **Multiple aspect ratios** - Supports 1:1, 3:4, 4:3, 16:9, 9:16, 2:3, 3:2, 21:9, and custom sizes
-- 🎨 **Flexible size options** - small (shortest dim 512px), regular (1 megapixel), big (longest dim 2048px)
+- 🎨 **Flexible size options** - Supports 1K, 2K, and 4K size specifications
 - ⚡ **Fast generation** - About 3 seconds for 1K images
 - 🎯 **Strong instruction following** - Highly accurate text-to-image conversion
 - 🖼️ **Reference image support** - Image-to-image generation with URL or local file paths
+- 💾 **Flexible output options** - Support for custom save paths and filenames
 
 ### Available Tools
 
@@ -330,19 +353,32 @@ Generate images from text prompts using Volcengine's SeedDream 4.0 model.
 
 **Parameters:**
 
-- `prompt` (required): Text description of the image (supports English and Chinese)
-- `aspect_ratio` (optional): Image aspect ratio - options: `1:1`, `3:4`, `4:3`, `16:9`, `9:16`, `2:3`, `3:2`, `21:9`, `custom` (default: `16:9`)
-- `size` (optional): Image size - options: `small`, `regular`, `big` (default: `regular`)
-  - `small`: Shortest dimension 512px
-  - `regular`: Always 1 megapixel (1024x1024)
-  - `big`: Longest dimension 2048px
-  - Ignored if aspect_ratio is `custom`
-- `width` (optional): Image width in pixels (512-2048, only used when aspect_ratio is `custom`)
-- `height` (optional): Image height in pixels (512-2048, only used when aspect_ratio is `custom`)
-- `guidance_scale` (optional): Prompt adherence strength, higher values follow prompt more literally (1.0-10.0, default: 2.5)
+- `prompt` (required): Text description of the image (supports English and Chinese). **Tip: You can specify aspect ratio in the prompt, e.g., "portrait-oriented cityscape", "9:16 aspect ratio landscape", and the model will automatically generate according to your requirements**
+- `size` (optional): Image size specification - options: `1K`, `2K`, `4K` (default: `2K`)
+- `guidance_scale` (optional): Prompt adherence strength, higher values follow prompt more literally (2.0-3.0, default: 2.5)
 - `seed` (optional): Random seed for reproducible results (0-2147483647)
 - `num_images` (optional): Number of images to generate (1-4, default: 1)
-- `reference_images` (optional): Reference image(s) for image-to-image generation. Can be a single image or an array of images. Each image can be either a URL (http/https) or a local file path. Local images will be automatically converted to base64
+- `output_directory` (optional): Directory to save generated images (MUST be absolute path). If not specified, images will only be returned as URLs. If set to empty string or null, images will be saved to a default temporary directory
+- `reference_images` (optional): Reference image(s) for image-to-image generation. Can be a single image or an array of images. Each image can be either a URL (http/https) or a local file path (MUST be absolute path). Local images will be automatically converted to base64
+- `filename` (optional): Custom filename for saved images (default: seedream_{timestamp}_{index}.png). For multiple images, index will be automatically appended
+
+#### `batch_generate_images`
+
+Batch generate multiple images concurrently using SeedDream 4.0. This tool allows you to generate multiple different images in parallel with controlled concurrency. Each task can have different prompts, settings, and parameters. Perfect for efficiently generating multiple variations, scenes, or concepts.
+
+**Parameters:**
+
+- `tasks` (required): Array of image generation tasks to execute concurrently. Each task has the same parameters as the `generate_image` tool:
+  - `prompt` (required): Text description of the image
+  - `size` (optional): Image size specification - `1K`, `2K`, `4K` (default: `2K`)
+  - `guidance_scale` (optional): Prompt adherence strength (2.0-3.0, default: 2.5)
+  - `seed` (optional): Random seed (0-2147483647)
+  - `num_images` (optional): Number of images per task (1-4, default: 1)
+  - `output_directory` (optional): Directory to save images (absolute path)
+  - `reference_images` (optional): Array of reference images (for image-to-image generation)
+  - `filename` (optional): Custom filename
+
+- `max_concurrent` (optional): Maximum number of tasks to run concurrently (1-10, default: 3). Lower values reduce API load, higher values increase speed
 
 ### Installation
 
@@ -456,9 +492,14 @@ Once configured, you can use the server through your MCP client:
 Generate an image of a serene mountain landscape at sunset with a lake reflection
 ```
 
-#### Specific Aspect Ratio
+#### Specify Aspect Ratio (via Prompt)
 ```
-Create a portrait-oriented image of a futuristic cityscape (aspect ratio 9:16)
+Create a portrait-oriented image of a futuristic cityscape (9:16 aspect ratio)
+```
+
+#### Specific Image Size
+```
+Generate a high-resolution landscape image (4K size)
 ```
 
 #### Generate Multiple Images
@@ -466,9 +507,14 @@ Create a portrait-oriented image of a futuristic cityscape (aspect ratio 9:16)
 Generate 3 variations of a cute robot character
 ```
 
-#### Batch Generation
+#### Batch Concurrent Generation (using batch_generate_images)
 ```
-Generate images for these prompts: "a red rose", "a blue ocean", "a green forest"
+Generate images concurrently for these prompts: "a red rose", "a blue ocean", "a green forest"
+```
+
+#### Batch Generation with Concurrency Control
+```
+Generate images for 5 different scenes, but limit concurrent tasks to 2 to control API load
 ```
 
 #### Chinese Language Support
@@ -478,7 +524,7 @@ Generate images for these prompts: "a red rose", "a blue ocean", "a green forest
 
 #### High Guidance for Precise Results
 ```
-Generate a photorealistic portrait of a person reading a book in a library (guidance scale: 7.5)
+Generate a photorealistic portrait of a person reading a book in a library (guidance scale: 3.0)
 ```
 
 #### Using Reference Images (Image-to-Image)
@@ -504,7 +550,7 @@ The server returns detailed information about generated images:
 ✅ Successfully generated 1 image(s) using SeedDream 4.0:
 
 📝 Prompt: "a serene mountain landscape at sunset"
-📐 Aspect Ratio: 1:1
+📐 Size: 2K
 🎯 Guidance Scale: 2.5
 🌱 Seed Used: 1234567890
 
